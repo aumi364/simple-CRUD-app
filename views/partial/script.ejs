@@ -1,0 +1,267 @@
+<script>
+    var i = 1;
+    var editMode = true;
+
+
+    $(document).ready(function() {
+
+
+        $.getJSON("/api")
+            .then(getComponents)
+
+        $('#addbtn').click(function() {
+            createComponent();
+        });
+        $('.table_body').on('click', '#delete_button', function() {
+            console.log("delete button clicked");
+            var row = $(this).closest("tr");
+            deleteComponent(row);
+
+        });
+        $('.table_body').on('click', '#plus_button', function() {
+
+            var row = $(this).closest("tr");
+            console.log(row);
+            addPieces(row);
+
+
+        });
+        $('.table_body').on('click', '#minus_button', function() {
+
+            var row = $(this).closest("tr");
+            minusPieces(row);
+
+
+        });
+        $('.table_body').on('click', '#edit_button', function() {
+            var row = $(this).closest("tr");
+            $('#btnTrigger').click();
+            $('#eimage').val(row.data('image'));
+            $('#ename').val(row.data('name'));
+            $('#edesc').val(row.data('desc'));
+            $('#epieces').val(row.data('pieces'));
+            $('#elinks').val(row.data('links'));
+            var id = row.data('id');
+
+            var editUrl = '/api/' + id;
+
+            $('#submitbtn').click(function() {
+                var imageInput = $('#eimage').val();
+                var nameInput = $('#ename').val();
+                var descInput = $('#edesc').val();
+                var pieceInput = $('#epieces').val();
+                var linksInput = $('#elinks').val();
+                console.log(linksInput);
+                $.ajax({
+                    method: "PUT",
+                    url: editUrl,
+                    data: {
+                        image: imageInput,
+                        name: nameInput,
+                        description: descInput,
+                        pieces: pieceInput,
+                        links: linksInput
+                    }
+
+                });
+
+                window.location.href = '/';
+            });
+
+
+        });
+        $('#searchbtn').on('keyup', function() {
+
+
+            var searchinput = $('#searchbtn').val();
+
+            var geturl = '/api/?search=' + searchinput;
+            console.log(geturl);
+            $('tr').not('thead tr').remove();
+            $.ajax({
+                method: 'GET',
+                url: geturl,
+            }).then(function(data) {
+
+                console.log(data[0]);
+                data.forEach(function(searchdata) {
+                    addComponent(searchdata);
+                });
+
+            });
+
+        });
+
+
+    });
+
+    function getComponents(components) {
+
+        components.forEach(function(data) {
+
+            addComponent(data);
+            console.log(data);
+
+        });
+    }
+
+    function addComponent(data) {
+
+        //console.log(data.pieces);
+
+        var newImage = $('<td id="tdimage"> <img src=' + data.image + ' width=\'100\' height =\'100\'> </td>');
+        var newName = $('<td id="tdname">' + data.name + '</td>');
+        var newDesc = $('<td id="tddesc">' + data.description + '</td>');
+        var pieceBtn = $(
+            '<td><button class="btn btn-link" id="plus_button"> <span class="glyphicon glyphicon-plus"></span></button><button class="btn btn-link" id="minus_button"> <span class="glyphicon glyphicon-minus"></span></button></td>'
+        );
+        var newPieces = $('<td id="tdpieces">' + data.pieces + '</td>');
+        var newLinks = $('<td id="tdlinks"> <a href=\"' + data.links + '\">' + data.links + '</a></td>');
+
+        var btns = $(
+            '<td><button class="btn btn-link" id="edit_button"> <span class="glyphicon glyphicon-edit"></span></button><button class="btn btn-link" id="delete_button"> <span class="glyphicon glyphicon-remove"></span></button></td>'
+        );
+
+        var row = $('<tr>').append(newImage).append(newName).append(newDesc).append(newPieces).append(pieceBtn).append(
+            newLinks).append(
+            btns);
+        row.data('id', data._id);
+        row.data('image', data.image);
+        row.data('name', data.name);
+        console.log(data.name);
+        row.data('pieces', data.pieces);
+        row.data('desc', data.description);
+        row.data('links', data.links);
+        $('.table_body').append(row);
+
+
+    }
+
+    function createComponent() {
+        var imageInput = $('#image').val();
+        var nameInput = $('#name').val();
+        var descInput = $('#desc').val();
+        var pieceInput = $('#pieces').val();
+        var linksInput = $('#links').val();
+
+        $.post('/api', {
+            image: imageInput,
+            name: nameInput,
+            description: descInput,
+            pieces: pieceInput,
+            links: linksInput
+        }).then(function(data) {
+            $('#image').val('');
+            $('#name').val('');
+            $('#pieces').val('');
+
+            $('#desc').val('');
+            $('#links').val('');
+
+            addComponent(data);
+        }).catch(function(err) {
+            console.log(err);
+        });
+
+
+    }
+
+    function deleteComponent(component) {
+
+        var id = component.data('id');
+        console.log(id);
+        var deleteUrl = '/api/' + id;
+        component.remove();
+        $.ajax({
+            method: 'DELETE',
+            url: deleteUrl,
+        }).then(function(data) {
+            console.log(data + "deleted");
+        });
+
+
+    };
+
+    function addPieces(piece) {
+        console.log(piece);
+        var addedPiece = piece.data('pieces');
+        var intPiece = parseInt(addedPiece) + 1;
+        var a = intPiece.toString();
+        var id = piece.data('id');
+        var addPieceUrl = '/api/' + id;
+
+
+        $.ajax({
+            method: "PUT",
+            url: addPieceUrl,
+            data: {
+                pieces: a
+            }
+
+        }).then(function(data) {
+            piece.data('pieces', data.pieces);
+            var rowtd = piece.children('td:eq(3)');
+            console.log(rowtd);
+
+            console.log($('td:eq(3)'));
+
+
+            rowtd.html(data.pieces);
+
+        });
+
+    };
+
+    function minusPieces(piece) {
+        var decrementPiece = piece.data('pieces');
+        var intPiece = parseInt(decrementPiece) - 1;
+        var a = intPiece.toString();
+        var id = piece.data('id');
+        var addPieceUrl = '/api/' + id;
+        console.log(a);
+        $.ajax({
+            method: "PUT",
+            url: addPieceUrl,
+            data: {
+                pieces: a
+            }
+        }).then(function(data) {
+            piece.data('pieces', data.pieces);
+            var rowtd = piece.children('td:eq(3)');
+            console.log(rowtd);
+
+            console.log($('td:eq(3)'));
+
+
+            rowtd.html(data.pieces);
+
+        });
+
+
+    };
+
+    // function updateComponent(row,td) {
+    //      var name =row.data('name');
+
+
+    //      var changeInput = td.replaceWith(function () {
+    //         return $("<input>", {
+    //             "id" : this.id,
+    //             value: this.innerText
+    //         });
+    //     });
+    //     var inputName=changeInput.text();
+
+
+
+
+    //     var id = row.data('id');
+
+    //     var editUrl = '/api/' + id;
+
+    //     $.ajax({
+    //         method: 'PUT',
+    //         url: editUrl
+    //     })
+    // };
+</script>
